@@ -1,0 +1,33 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# builds
+.next/
+out/
+dist/
+build/
+.turbo/
+*.tsbuildinfo
+
+# env and secrets — never commit
+.env
+.env.*
+!.env.example
+
+# supabase local
+packages/db/supabase/.temp/
+packages/db/supabase/.branches/
+
+# tests
+coverage/
+playwright-report/
+test-results/
+
+# os / editors
+.DS_Store
+.vscode/
+.idea/
+
+# vercel
+.vercel/

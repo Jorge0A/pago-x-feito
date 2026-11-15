@@ -1,0 +1,32 @@
+{
+  "name": "pago-x-feito",
+  "private": true,
+  "packageManager": "pnpm@12.18.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @pxf/web dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "env:sync": "node scripts/sync-env.mjs",
+    "db:push:dev": "node scripts/db.mjs push dev",
+    "db:push:prod": "node scripts/db.mjs push prod",
+    "db:types": "node scripts/db.mjs types dev",
+    "db:seed:dev": "node scripts/db.mjs seed dev"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp",
+      "@tailwindcss/oxide",
+      "unrs-resolver",
+      "@supabase/supabase-js"
+    ]
+  }
+}
