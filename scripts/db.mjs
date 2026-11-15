@@ -24,20 +24,37 @@ function reachable(url) {
   });
 }
 
-let dbUrl = null;
-for (const u of dbUrls(sb)) {
-  if (await reachable(u)) { dbUrl = u; break; }
-}
-if (!dbUrl) {
+// Candidate endpoints: direct host (IPv6), then the regional poolers. A pooler answers on TCP even
+// when the project lives on another pooler, so push/types try each candidate until one accepts.
+const candidates = [];
+for (const u of dbUrls(sb)) if (await reachable(u)) candidates.push(u);
+if (process.env.PXF_DB_URL) candidates.unshift(process.env.PXF_DB_URL);
+if (candidates.length === 0) {
   console.error(`No reachable Postgres endpoint for ${target} (${sb.ref}).`);
   process.exit(1);
 }
-console.log(`[db] target=${target} ref=${sb.ref} via ${new URL(dbUrl).hostname}`);
+console.log(`[db] target=${target} ref=${sb.ref} candidates=${candidates.map((u) => new URL(u).hostname).join(", ")}`);
 
-function run(args, opts = {}) {
-  const r = spawnSync("supabase", args, { cwd: dbDir, stdio: opts.capture ? ["ignore", "pipe", "inherit"] : "inherit" });
-  if (r.status !== 0) process.exit(r.status ?? 1);
-  return r.stdout?.toString() ?? "";
+/** Runs a supabase command once per candidate until one connects. */
+function runWithFallback(makeArgs, opts = {}) {
+  let last = "";
+  for (const u of candidates) {
+    const r = spawnSync("supabase", makeArgs(u), { cwd: dbDir, encoding: "utf8" });
+    const out = (r.stdout ?? "") + (r.stderr ?? "");
+    const notFound = /tenant\/user .* not found|DbConnectError/i.test(out);
+    if (r.status === 0) {
+      if (!opts.capture) process.stdout.write(out);
+      return r.stdout ?? "";
+    }
+    if (!notFound) {
+      process.stdout.write(out);
+      process.exit(r.status ?? 1);
+    }
+    last = out;
+    console.log(`[db] ${new URL(u).hostname} does not host this project, trying next…`);
+  }
+  process.stdout.write(last);
+  process.exit(1);
 }
 
 if (target === "prod" && (cmd === "push" || cmd === "seed") && process.env.CONFIRM_PROD !== "yes") {
@@ -47,10 +64,10 @@ if (target === "prod" && (cmd === "push" || cmd === "seed") && process.env.CONFI
 
 switch (cmd) {
   case "dry-run":
-    run(["db", "push", "--remote", dbUrl, "--dry-run"]);
+    runWithFallback((u) => ["db", "push", "--remote", u, "--dry-run"]);
     break;
   case "push":
-    run(["db", "push", "--remote", dbUrl, "--yes"]);
+    runWithFallback((u) => ["db", "push", "--remote", u, "--yes"]);
     break;
   case "types": {
     const out = run(["gen", "types", "typescript", "--remote", dbUrl, "--schema", "public"], { capture: true });

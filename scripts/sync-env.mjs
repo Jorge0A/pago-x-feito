@@ -1,9 +1,13 @@
-// Writes apps/web/.env.local from the root .env for the chosen target (default dev).
+// Writes an env file for the web app from the root .env.
+// Usage: node scripts/sync-env.mjs [dev|prod] [outputPath] [appUrl]
+// Default: dev → apps/web/.env.local. For Vercel: prod apps/web/.env.vercel https://<domain>
 import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { loadRootEnv, supabaseConfig } from "./env.mjs";
 
 const target = process.argv[2] ?? "dev";
+const outArg = process.argv[3];
+const appUrl = process.argv[4] ?? "http://localhost:3000";
 const env = loadRootEnv();
 const sb = supabaseConfig(env, target);
 const lines = [
@@ -14,10 +18,10 @@ const lines = [
   `ANTHROPIC_API_KEY=${env.ANTHROPIC_API_KEY ?? ""}`,
   `RESEND_API_KEY=${env.RESEND_API_KEY ?? ""}`,
   `OWNER_EMAIL=${env.OWNER_EMAIL ?? ""}`,
-  `NEXT_PUBLIC_APP_URL=http://localhost:3000`,
+  `NEXT_PUBLIC_APP_URL=${appUrl}`,
   `CRON_SECRET=${env.CRON_SECRET ?? "dev-cron-secret"}`,
   "",
 ];
-const out = resolve(import.meta.dirname, "..", "apps", "web", ".env.local");
+const out = outArg ? resolve(process.cwd(), outArg) : resolve(import.meta.dirname, "..", "apps", "web", ".env.local");
 writeFileSync(out, lines.join("\n"), { mode: 0o600 });
 console.log(`wrote ${out} (${target})`);
