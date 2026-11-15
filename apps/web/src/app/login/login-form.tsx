@@ -41,7 +41,7 @@ export function LoginForm({ next }: { next: string }) {
           {sending ? "Enviando…" : "Receber link de acesso"}
         </Button>
         <p className="text-xs text-muted-foreground">
-          Sem senha. Enviamos um link e um código de 6 dígitos para o seu e-mail.
+          Sem senha. Enviamos um link e um código numérico para o seu e-mail.
         </p>
       </form>
     );
@@ -55,17 +55,17 @@ export function LoginForm({ next }: { next: string }) {
         Enviamos um e-mail para <strong>{email}</strong>. Toque no link ou digite o código abaixo.
       </p>
       <div className="space-y-2">
-        <Label htmlFor="token">Código de 6 dígitos</Label>
+        <Label htmlFor="token">Código do e-mail</Label>
         <Input
           id="token"
           name="token"
           inputMode="numeric"
           autoComplete="one-time-code"
           pattern="[0-9]*"
-          maxLength={6}
+          maxLength={10}
           required
-          placeholder="000000"
-          className="h-12 text-center text-2xl tracking-[0.4em]"
+          placeholder="123456"
+          className="h-12 text-center text-2xl tracking-[0.3em]"
         />
       </div>
       {verifyState && !verifyState.ok && <p className="text-sm text-destructive">{verifyState.error}</p>}

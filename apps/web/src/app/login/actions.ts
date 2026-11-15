@@ -30,7 +30,7 @@ export async function verifyLoginCode(_prev: ActionResult | null, fd: FormData):
   const token = (str(fd, "token") ?? "").replace(/\D/g, "");
   const next = str(fd, "next") || "/app";
   if (!email.success) return { ok: false, error: "E-mail inválido" };
-  if (token.length < 6) return { ok: false, error: "Digite o código de 6 dígitos" };
+  if (token.length < 6 || token.length > 10) return { ok: false, error: "Digite o código que está no e-mail" };
 
   const supabase = await createClient();
   const { error } = await supabase.auth.verifyOtp({ email: email.data, token, type: "email" });
