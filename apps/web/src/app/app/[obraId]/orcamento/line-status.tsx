@@ -65,22 +65,32 @@ export function LineStatusActions({
         >
           {alternatives.length > 0 ? (
             <div className="space-y-2">
-              <p className="text-sm font-medium">Recusar também estas cotações da mesma categoria?</p>
+              <p className="text-sm font-medium">Outras cotações nesta categoria</p>
+              <p className="text-xs text-muted-foreground">
+                Por padrão elas continuam em cotação. Escolha "Aprovar também" para fechar várias de uma vez, ou "Recusar" para as que perdem.
+              </p>
               <ul className="divide-y rounded-lg border">
                 {alternatives.map((a) => (
-                  <li key={a.id}>
-                    <label className="flex items-center gap-3 px-3 py-2">
-                      <input type="checkbox" name="also_reject" value={a.id} className="size-5 accent-[#0f5132]" />
+                  <li key={a.id} className="space-y-1.5 px-3 py-2">
+                    <div className="flex items-baseline justify-between gap-2">
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm">{a.description}</span>
                         <span className="block truncate text-xs text-muted-foreground">{a.supplierName ?? "Sem fornecedor"}</span>
                       </span>
                       <span className="shrink-0 text-sm tabular-nums">{formatBRL(a.total)}</span>
-                    </label>
+                    </div>
+                    <select
+                      name={`alt-${a.id}`}
+                      defaultValue=""
+                      className="h-9 w-full rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                    >
+                      <option value="">Manter em cotação</option>
+                      <option value="approve">Aprovar também</option>
+                      <option value="reject">Recusar</option>
+                    </select>
                   </li>
                 ))}
               </ul>
-              <p className="text-xs text-muted-foreground">Marque as que perdem para esta. As demais continuam em cotação.</p>
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">A linha passa a contar no orçado da obra.</p>

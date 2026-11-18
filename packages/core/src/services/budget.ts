@@ -111,7 +111,7 @@ export async function setBudgetLineStatus(
   lineId: string,
   userId: string,
   status: BudgetLineStatus,
-  opts: { alsoReject?: string[]; reason?: string | null } = {},
+  opts: { alsoReject?: string[]; alsoApprove?: string[]; reason?: string | null } = {},
 ): Promise<void> {
   const { data: line, error: lErr } = await db.from("budget_lines").select("id, status, description").eq("id", lineId).eq("obra_id", obraId).single();
   if (lErr) throw new Error(`budget_lines.select failed: ${lErr.message}`);
@@ -132,7 +132,27 @@ export async function setBudgetLineStatus(
     payload: { budget_line_id: lineId, from: line.status, to: status, reason: opts.reason ?? null, description: line.description },
   });
 
-  const others = (opts.alsoReject ?? []).filter((id) => id !== lineId);
+  const alsoApprove = (opts.alsoApprove ?? []).filter((id) => id !== lineId);
+  if (status === "approved" && alsoApprove.length > 0) {
+    const { data: approved, error: aErr } = await db
+      .from("budget_lines")
+      .update({ status: "approved", status_changed_at: now, rejection_reason: null })
+      .in("id", alsoApprove)
+      .eq("obra_id", obraId)
+      .eq("status", "quoted")
+      .select("id, description");
+    if (aErr) throw new Error(`budget_lines.update failed: ${aErr.message}`);
+    for (const a of approved ?? []) {
+      await logEvent(db, {
+        obra_id: obraId,
+        actor_id: userId,
+        type: "budget_line.status_changed",
+        payload: { budget_line_id: a.id, from: "quoted", to: "approved", description: a.description },
+      });
+    }
+  }
+
+  const others = (opts.alsoReject ?? []).filter((id) => id !== lineId && !alsoApprove.includes(id));
   if (status === "approved" && others.length > 0) {
     const { data: rejected, error: rErr } = await db
       .from("budget_lines")

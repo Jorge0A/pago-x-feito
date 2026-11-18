@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { BudgetLineSheet } from "./budget-line-form";
 import { LineStatusActions, type AlternativeLine } from "./line-status";
+import { BulkBar, BULK_FORM_ID } from "./bulk-bar";
 
 export const metadata: Metadata = { title: "Orçamento" };
 
@@ -68,7 +69,7 @@ export default async function OrcamentoPage({
   return (
     <>
       <PageHeader title="Orçamento" subtitle={`${summary.lines.length} ${summary.lines.length === 1 ? "linha" : "linhas"}`} action={addButton} />
-      <main className="mx-auto w-full max-w-lg space-y-5 px-4 py-5">
+      <main className={cn("mx-auto w-full max-w-lg space-y-5 px-4 py-5", filter.key === "cotacao" && counts.cotacao > 0 && "pb-20")}>
         {importado === "1" && (
           <p className="rounded-xl border border-[#0f5132]/30 bg-[#0f5132]/5 px-4 py-3 text-sm">
             Planilha importada. As linhas entram <strong>em cotação</strong>: aprove as que valem e recuse as outras. Só o aprovado conta no orçado.
@@ -143,6 +144,16 @@ export default async function OrcamentoPage({
                   return (
                     <li key={l.id} className={cn("space-y-2 px-3 py-3", status === "rejected" && "opacity-70")}>
                       <div className="flex items-start gap-2">
+                        {filter.key === "cotacao" && status === "quoted" && (
+                          <input
+                            type="checkbox"
+                            name="ids"
+                            value={l.id}
+                            form={BULK_FORM_ID}
+                            className="mt-1 size-5 shrink-0 accent-[#0f5132]"
+                            aria-label={`Selecionar ${l.description}`}
+                          />
+                        )}
                         <div className="min-w-0 flex-1">
                           <p className={cn("truncate text-sm font-medium", status === "rejected" && "line-through")}>{l.description}</p>
                           <p className="truncate text-xs text-muted-foreground">
@@ -184,6 +195,7 @@ export default async function OrcamentoPage({
           ))
         )}
       </main>
+      {filter.key === "cotacao" && counts.cotacao > 0 && <BulkBar obraId={obraId} total={counts.cotacao} />}
     </>
   );
 }
