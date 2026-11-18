@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import { formatDateBR, getObra, getObraDashboard, percentOf } from "@pxf/core";
+import { countOpenInboxItems, formatDateBR, getObra, getObraDashboard, percentOf } from "@pxf/core";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/app/page-header";
 import { Money } from "@/components/app/money";
@@ -12,7 +12,11 @@ import { EmptyState } from "@/components/app/empty-state";
 export default async function ResumoPage({ params }: { params: Promise<{ obraId: string }> }) {
   const { obraId } = await params;
   const supabase = await createClient();
-  const [obra, dash] = await Promise.all([getObra(supabase, obraId), getObraDashboard(supabase, obraId)]);
+  const [obra, dash, inboxCount] = await Promise.all([
+    getObra(supabase, obraId),
+    getObraDashboard(supabase, obraId),
+    countOpenInboxItems(supabase, obraId),
+  ]);
   if (!obra) return null;
   const { summary } = dash;
   const paidPct = percentOf(summary.paidTotal, summary.committed);
@@ -21,6 +25,17 @@ export default async function ResumoPage({ params }: { params: Promise<{ obraId:
     <>
       <PageHeader title={obra.title} subtitle={obra.building.name} />
       <main className="mx-auto w-full max-w-lg space-y-6 px-4 py-5">
+        {inboxCount > 0 && (
+          <Link
+            href={`/app/${obraId}/entrada`}
+            className="flex items-center justify-between rounded-xl border border-[#0f5132]/30 bg-[#0f5132]/5 px-4 py-3 text-sm"
+          >
+            <span>
+              <strong>{inboxCount}</strong> {inboxCount === 1 ? "item aguardando sua confirmação" : "itens aguardando sua confirmação"}
+            </span>
+            <ChevronRight className="size-4" />
+          </Link>
+        )}
         <section className="grid grid-cols-2 gap-3">
           <Stat label="Orçado" value={summary.budgeted} />
           <Stat label="Contratado" value={summary.committed} />
@@ -95,6 +110,33 @@ export default async function ResumoPage({ params }: { params: Promise<{ obraId:
             </ul>
           )}
         </section>
+
+        {dash.bySupplier.length > 0 && (
+          <section className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold">Por fornecedor</h2>
+              <Button variant="ghost" size="sm" nativeButton={false} render={<Link href={`/app/${obraId}/fornecedores`} />}>
+                Ver todos <ChevronRight className="size-4" />
+              </Button>
+            </div>
+            <ul className="divide-y rounded-xl border">
+              {dash.bySupplier.slice(0, 8).map((s) => (
+                <li key={s.supplier_id ?? "none"} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{s.name}</p>
+                    <p className="text-xs text-muted-foreground tabular-nums">
+                      pago <Money value={s.paid} className="text-foreground" /> de <Money value={s.committed} />
+                    </p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className="text-[11px] text-muted-foreground">a pagar</p>
+                    <Money value={s.owed} className="text-sm font-medium" />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         <section className="space-y-3">
           <h2 className="text-sm font-semibold">Próximos vencimentos</h2>

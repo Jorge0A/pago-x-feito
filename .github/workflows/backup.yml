@@ -1,0 +1,55 @@
+name: Nightly database backup
+
+# Dumps pxf-prod every night at 03:30 São Paulo time (06:30 UTC), encrypts it with a passphrase
+# and keeps it as a workflow artifact for 90 days. Also keeps the Free-tier project from pausing.
+#
+# Secrets needed (Settings → Secrets and variables → Actions):
+#   PROD_DB_URL         postgresql://postgres.<ref>:<password>@aws-1-sa-east-1.pooler.supabase.com:5432/postgres
+#   BACKUP_PASSPHRASE   long random string; needed to restore. Keep a copy outside GitHub.
+#
+# Restore (locally):
+#   openssl enc -d -aes-256-cbc -pbkdf2 -in pxf-prod-YYYY-MM-DD.sql.gz.enc -pass env:BACKUP_PASSPHRASE | gunzip > dump.sql
+#   psql "$PROD_DB_URL" -f dump.sql   (into an empty project; roles/extensions already exist on Supabase)
+
+on:
+  schedule:
+    - cron: "30 6 * * *"
+  workflow_dispatch:
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Install PostgreSQL 17 client
+        run: |
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-17
+      - name: Dump and encrypt
+        env:
+          PROD_DB_URL: ${{ secrets.PROD_DB_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          test -n "$PROD_DB_URL" || { echo "PROD_DB_URL secret missing"; exit 1; }
+          test -n "$BACKUP_PASSPHRASE" || { echo "BACKUP_PASSPHRASE secret missing"; exit 1; }
+          DAY=$(TZ=America/Sao_Paulo date +%F)
+          pg_dump "$PROD_DB_URL" \
+            --no-owner --no-privileges \
+            --schema=public --schema=auth --schema=storage \
+            --exclude-table-data='auth.audit_log_entries' \
+            --exclude-table-data='auth.refresh_tokens' \
+            --exclude-table-data='auth.sessions' \
+            | gzip -9 \
+            | openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -pass env:BACKUP_PASSPHRASE \
+            > "pxf-prod-$DAY.sql.gz.enc"
+          ls -la pxf-prod-*.sql.gz.enc
+          SIZE=$(stat -c %s "pxf-prod-$DAY.sql.gz.enc")
+          test "$SIZE" -gt 1000 || { echo "dump suspiciously small ($SIZE bytes)"; exit 1; }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pxf-prod-backup
+          path: pxf-prod-*.sql.gz.enc
+          retention-days: 90
+          if-no-files-found: error

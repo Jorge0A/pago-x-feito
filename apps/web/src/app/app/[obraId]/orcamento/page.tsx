@@ -10,8 +10,15 @@ import { BudgetLineSheet } from "./budget-line-form";
 
 export const metadata: Metadata = { title: "Orçamento" };
 
-export default async function OrcamentoPage({ params }: { params: Promise<{ obraId: string }> }) {
+export default async function OrcamentoPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ obraId: string }>;
+  searchParams: Promise<{ importado?: string }>;
+}) {
   const { obraId } = await params;
+  const { importado } = await searchParams;
   const supabase = await createClient();
   const [dash, suppliers] = await Promise.all([getObraDashboard(supabase, obraId), listSuppliers(supabase, obraId)]);
   const { summary } = dash;
@@ -33,6 +40,11 @@ export default async function OrcamentoPage({ params }: { params: Promise<{ obra
     <>
       <PageHeader title="Orçamento" subtitle={`${summary.lines.length} ${summary.lines.length === 1 ? "linha" : "linhas"}`} action={addButton} />
       <main className="mx-auto w-full max-w-lg space-y-5 px-4 py-5">
+        {importado === "1" && (
+          <p className="rounded-xl border border-[#0f5132]/30 bg-[#0f5132]/5 px-4 py-3 text-sm">
+            Planilha importada. Toque em uma linha para ajustar fornecedor, categoria ou valores.
+          </p>
+        )}
         <section className="grid grid-cols-3 gap-2 rounded-xl border p-3 text-center">
           <Total label="Orçado" value={summary.budgeted} />
           <Total label="Contratado" value={summary.committed} />

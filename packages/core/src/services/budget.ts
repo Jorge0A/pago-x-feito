@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { DbClient, Tables } from "@pxf/db";
-import { summarizeObra, type ObraSummary } from "../summary";
+import { summarizeBySupplier, summarizeObra, type ObraSummary, type SupplierSummary } from "../summary";
 import { logEvent } from "./events";
 
 const centavos = z.number().int().min(0);
@@ -96,6 +96,7 @@ export async function updateBudgetLine(
 
 export interface ObraDashboard {
   summary: ObraSummary;
+  bySupplier: SupplierSummary[];
   lines: BudgetLineWithSupplier[];
   suppliersCount: number;
   pendingNfCount: number;
@@ -108,7 +109,7 @@ export async function getObraDashboard(db: DbClient, obraId: string): Promise<Ob
   const [lines, payments, suppliers, pendingNf, installments] = await Promise.all([
     listBudgetLines(db, obraId),
     db.from("payments").select("id, supplier_id, budget_line_id, amount_centavos").eq("obra_id", obraId),
-    db.from("suppliers").select("id", { count: "exact", head: true }).eq("obra_id", obraId),
+    db.from("suppliers").select("id, name").eq("obra_id", obraId),
     db
       .from("payments")
       .select("id", { count: "exact", head: true })
@@ -123,12 +124,15 @@ export async function getObraDashboard(db: DbClient, obraId: string): Promise<Ob
       .limit(5),
   ]);
   if (payments.error) throw new Error(payments.error.message);
+  if (suppliers.error) throw new Error(suppliers.error.message);
   if (installments.error) throw new Error(installments.error.message);
+  const names = new Map((suppliers.data ?? []).map((s) => [s.id, s.name] as const));
 
   return {
     summary: summarizeObra(lines, payments.data ?? []),
+    bySupplier: summarizeBySupplier(lines, payments.data ?? [], names),
     lines,
-    suppliersCount: suppliers.count ?? 0,
+    suppliersCount: suppliers.data?.length ?? 0,
     pendingNfCount: pendingNf.count ?? 0,
     upcomingInstallments: (installments.data ?? []) as unknown as ObraDashboard["upcomingInstallments"],
   };

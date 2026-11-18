@@ -3,7 +3,10 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "exports": { ".": "./src/index.ts" },
+  "exports": {
+    ".": "./src/index.ts",
+    "./spreadsheet": "./src/spreadsheet/index.ts"
+  },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
@@ -11,7 +14,8 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
     "@pxf/core": "workspace:*",
-    "zod": "^4.2.0"
+    "zod": "^4.2.0",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
     "typescript": "^5.9.3",

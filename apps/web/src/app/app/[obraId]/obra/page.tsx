@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { LogOut, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { formatDateBR, getObra, workHoursOf, type WorkHours } from "@pxf/core";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/app/page-header";
@@ -89,11 +89,6 @@ export default async function ObraPage({ params }: { params: Promise<{ obraId: s
           </div>
         </section>
 
-        <form action="/auth/signout" method="post">
-          <Button type="submit" variant="outline" className="w-full">
-            <LogOut className="size-4" /> Sair
-          </Button>
-        </form>
       </main>
     </>
   );

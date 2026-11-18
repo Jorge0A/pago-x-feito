@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { summarizeObra } from "./summary";
+import { summarizeBySupplier, summarizeObra } from "./summary";
 
 const lines = [
   { id: "l1", supplier_id: "s1", category: "Projeto", description: "Planilha", budgeted_centavos: 450000, contracted_centavos: 450000 },
@@ -36,5 +36,21 @@ describe("summarizeObra", () => {
     const s = summarizeObra([], []);
     expect(s.paidTotal).toBe(0);
     expect(s.categories).toEqual([]);
+  });
+});
+
+describe("summarizeBySupplier", () => {
+  it("groups committed and paid per supplier, payments regardless of line", () => {
+    const names = new Map([["s1", "BALT"], ["s2", "Pintor"]]);
+    const out = summarizeBySupplier(lines, [
+      { id: "p1", supplier_id: "s1", budget_line_id: "l1", amount_centavos: 225000 },
+      { id: "p2", supplier_id: "s2", budget_line_id: null, amount_centavos: 150000 },
+    ], names);
+    expect(out.map((s) => s.name)).toEqual(["Pintor", "BALT"]);
+    const pintor = out[0]!;
+    expect(pintor.committed).toBe(1050000);
+    expect(pintor.paid).toBe(150000);
+    expect(pintor.owed).toBe(900000);
+    expect(out[1]!.owed).toBe(225000);
   });
 });

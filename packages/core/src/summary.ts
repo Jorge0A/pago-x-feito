@@ -53,6 +53,43 @@ export interface ObraSummary {
   lines: LineSummary[];
 }
 
+export interface SupplierSummary {
+  supplier_id: string | null;
+  name: string;
+  committed: Centavos;
+  paid: Centavos;
+  owed: Centavos;
+  lines: number;
+}
+
+/**
+ * Money per supplier. Payments count for their supplier whether or not they are tied to a line,
+ * so "owed" per supplier matches what the owner still has to send that supplier.
+ */
+export function summarizeBySupplier(
+  lines: BudgetLineRow[],
+  payments: PaymentRow[],
+  names: Map<string, string>,
+): SupplierSummary[] {
+  const map = new Map<string | null, SupplierSummary>();
+  const get = (id: string | null) => {
+    let s = map.get(id);
+    if (!s) {
+      s = { supplier_id: id, name: id ? (names.get(id) ?? "Fornecedor") : "Sem fornecedor", committed: 0, paid: 0, owed: 0, lines: 0 };
+      map.set(id, s);
+    }
+    return s;
+  };
+  for (const l of lines) {
+    const s = get(l.supplier_id);
+    s.committed += l.contracted_centavos ?? l.budgeted_centavos;
+    s.lines += 1;
+  }
+  for (const p of payments) get(p.supplier_id).paid += p.amount_centavos;
+  for (const s of map.values()) s.owed = Math.max(s.committed - s.paid, 0);
+  return [...map.values()].sort((a, b) => b.committed - a.committed || a.name.localeCompare(b.name, "pt-BR"));
+}
+
 export function summarizeObra(lines: BudgetLineRow[], payments: PaymentRow[]): ObraSummary {
   const paidByLine = new Map<string, Centavos>();
   let paidUnallocated = 0;

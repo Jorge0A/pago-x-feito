@@ -51,6 +51,27 @@ Production: `CONFIRM_PROD=yes pnpm db:push:prod`. Vercel env vars are the same n
 | `pnpm typecheck` | tsc across packages |
 | `pnpm --filter @pxf/web test:e2e` | Playwright smoke tests |
 | `pnpm db:push:dev` / `db:types` / `db:seed:dev` | database tasks against pxf-dev |
+| `CONFIRM_PROD=yes pnpm db:push:prod` | apply migrations to pxf-prod |
+| `node scripts/db.mjs login dev` | one-time local sign-in link for browser testing |
+| `node scripts/backup-secrets.mjs` | set the GitHub secrets for the nightly backup |
+
+## App structure (v0)
+
+Bottom menu: **Entrada** (inbox: every file goes in here, the app proposes, you confirm) · **Resumo**
+(money by category and by supplier, next due dates) · **Orçamento** (budget lines) · **Fornecedores** ·
+**Mais** (obra and building, documents, sign out).
+
+Spreadsheet import: `packages/extractors/src/spreadsheet` reads xlsx/xls/csv with SheetJS, detects the
+header row, maps columns by pt-BR keywords, inherits merged-cell categories, skips subtotal rows. The
+user adjusts the mapping in the preview; the fast model is only asked when the heuristic is unsure
+(logged in `ai_calls`). Fixtures: `packages/extractors/src/fixtures`. Build one as a real file with
+`pnpm --filter @pxf/db exec tsx ../extractors/scripts/fixture-xlsx.ts planilha-engenheiro out.xlsx`.
+
+## Backups (Free plan)
+
+`.github/workflows/backup.yml` dumps pxf-prod nightly (03:30 São Paulo), encrypts it with
+`BACKUP_PASSPHRASE` and keeps it 90 days as a workflow artifact. Restore steps are in the workflow
+header. Keep the passphrase (root `.env`) somewhere safe outside GitHub.
 
 ## Rules that apply everywhere
 
