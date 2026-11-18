@@ -7,6 +7,8 @@ import { EmptyState } from "@/components/app/empty-state";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SupplierSheet } from "./supplier-form";
+import { SwipeRow } from "@/components/app/swipe-row";
+import { deleteSupplierAction } from "./actions";
 
 export const metadata: Metadata = { title: "Fornecedores" };
 
@@ -45,7 +47,9 @@ export default async function FornecedoresPage({ params }: { params: Promise<{ o
         ) : (
           <ul className="space-y-3">
             {suppliers.map((s) => (
-              <li key={s.id} className="rounded-xl border p-4">
+              <li key={s.id} className="overflow-hidden rounded-xl border">
+                <SwipeRow onDelete={deleteSupplierAction.bind(null, obraId, s.id)}>
+                <div className="p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate font-medium">{s.name}</p>
@@ -84,6 +88,8 @@ export default async function FornecedoresPage({ params }: { params: Promise<{ o
                     )}
                   </div>
                 )}
+                </div>
+                </SwipeRow>
               </li>
             ))}
           </ul>

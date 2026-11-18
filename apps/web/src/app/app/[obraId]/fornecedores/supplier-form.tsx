@@ -6,7 +6,10 @@ import { FormSheet } from "@/components/app/form-sheet";
 import { Field, SelectField } from "@/components/app/field";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { createSupplierAction, updateSupplierAction } from "./actions";
+import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { createSupplierAction, deleteSupplierAction, updateSupplierAction } from "./actions";
 
 const categories = SUPPLIER_CATEGORIES.map((c) => ({ value: c, label: c }));
 
@@ -54,6 +57,21 @@ export function SupplierSheet({
         <Label htmlFor="notes">Observações</Label>
         <Textarea id="notes" name="notes" rows={3} defaultValue={supplier?.notes ?? ""} className="text-base" />
       </div>
+      {supplier && (
+        <Button
+          type="button"
+          variant="ghost"
+          className="w-full text-destructive"
+          onClick={async () => {
+            if (!window.confirm(`Excluir "${supplier.name}"? Linhas do orçamento ligadas a ele ficam sem fornecedor. Isso não desfaz.`)) return;
+            const r = await deleteSupplierAction(obraId, supplier.id);
+            if (r.ok) toast.success(r.message ?? "Fornecedor excluído");
+            else toast.error(r.error);
+          }}
+        >
+          <Trash2 className="size-4" /> Excluir fornecedor
+        </Button>
+      )}
     </FormSheet>
   );
 }

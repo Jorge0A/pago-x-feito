@@ -7,6 +7,8 @@ import { PageHeader } from "@/components/app/page-header";
 import { EmptyState } from "@/components/app/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SwipeRow } from "@/components/app/swipe-row";
+import { deleteDocumentAction } from "./actions";
 
 export const metadata: Metadata = { title: "Documentos" };
 
@@ -39,11 +41,13 @@ export default async function DocumentosPage({ params }: { params: Promise<{ obr
       />
       <main className="mx-auto w-full max-w-lg px-4 py-5">
         {docs.length === 0 ? (
-          <EmptyState title="Nenhum documento ainda" description="Arquivos enviados pela Entrada aparecem aqui, com link privado de 10 minutos." />
+          <EmptyState title="Nenhum documento ainda" description="Arquivos enviados pela Entrada aparecem aqui, com link privado de 10 minutos. Deslize para a direita para excluir." />
         ) : (
           <ul className="divide-y rounded-xl border">
             {docs.map((d, i) => (
-              <li key={d.id} className="flex items-center gap-3 px-3 py-3">
+              <li key={d.id}>
+                <SwipeRow onDelete={deleteDocumentAction.bind(null, obraId, d.id)}>
+                <div className="flex items-center gap-3 px-3 py-3">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{d.original_name}</p>
                   <p className="text-xs text-muted-foreground">
@@ -58,6 +62,8 @@ export default async function DocumentosPage({ params }: { params: Promise<{ obr
                     <ExternalLink className="size-4" />
                   </Button>
                 )}
+                </div>
+                </SwipeRow>
               </li>
             ))}
           </ul>

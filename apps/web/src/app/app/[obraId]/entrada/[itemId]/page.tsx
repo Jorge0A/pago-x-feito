@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { discardAction, type SpreadsheetProposal } from "../actions";
+import { deleteFileAction, discardAction, type SpreadsheetProposal } from "../actions";
 import { ImportPreview } from "./import-preview";
 
 export const metadata: Metadata = { title: "Entrada" };
@@ -92,10 +92,18 @@ export default async function InboxItemPage({ params }: { params: Promise<{ obra
 
         {isOpen && (
           <form action={discardAction.bind(null, obraId, itemId)}>
-            <Button type="submit" variant="outline" className="w-full text-destructive">
-              <Trash2 className="size-4" /> Descartar este item
+            <Button type="submit" variant="outline" className="w-full">
+              Descartar proposta
             </Button>
             <p className="mt-1.5 text-center text-xs text-muted-foreground">O arquivo continua em Documentos; só a proposta é descartada.</p>
+          </form>
+        )}
+        {doc && (
+          <form action={deleteFileAction.bind(null, obraId, itemId)}>
+            <Button type="submit" variant="outline" className="w-full text-destructive">
+              <Trash2 className="size-4" /> Excluir arquivo
+            </Button>
+            <p className="mt-1.5 text-center text-xs text-muted-foreground">Remove o arquivo e este item da Entrada. Linhas já importadas continuam no orçamento.</p>
           </form>
         )}
       </main>

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createSupplier, supplierSchema, updateSupplier } from "@pxf/core";
+import { createSupplier, deleteSupplier, supplierSchema, updateSupplier } from "@pxf/core";
 import { createClient } from "@/lib/supabase/server";
 import { runAction, str, type ActionResult } from "@/lib/action-result";
 
@@ -46,5 +46,19 @@ export async function updateSupplierAction(
     await updateSupplier(supabase, obraId, supplierId, data.user.id, parse(fd));
     revalidatePath(`/app/${obraId}`, "layout");
     return { ok: true };
+  });
+}
+
+export async function deleteSupplierAction(obraId: string, supplierId: string): Promise<ActionResult> {
+  return runAction(async () => {
+    const supabase = await createClient();
+    const { data } = await supabase.auth.getUser();
+    if (!data.user) return { ok: false, error: "Sessão expirada." };
+    const { detachedLines } = await deleteSupplier(supabase, obraId, supplierId, data.user.id);
+    revalidatePath(`/app/${obraId}`, "layout");
+    return {
+      ok: true,
+      message: detachedLines > 0 ? `Fornecedor excluído. ${detachedLines} ${detachedLines === 1 ? "linha ficou" : "linhas ficaram"} sem fornecedor.` : "Fornecedor excluído",
+    };
   });
 }

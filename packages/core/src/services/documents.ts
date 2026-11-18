@@ -1,4 +1,5 @@
 import type { DbClient, Enums, Tables } from "@pxf/db";
+import { logEvent } from "./events";
 
 export const DOCUMENTS_BUCKET = "documents";
 
@@ -83,4 +84,33 @@ export async function downloadDocument(db: DbClient, storagePath: string): Promi
   const { data, error } = await db.storage.from(DOCUMENTS_BUCKET).download(storagePath);
   if (error) throw new Error(`download failed: ${error.message}`);
   return data.arrayBuffer();
+}
+
+/**
+ * Deletes an uploaded file and its inbox items. Refused when a payment or contract uses it
+ * (receipt, NF, contract PDF). Budget lines imported from it keep existing without the source link.
+ */
+export async function deleteDocument(db: DbClient, obraId: string, documentId: string, userId: string): Promise<void> {
+  const { data: doc, error: dErr } = await db.from("documents").select("*").eq("id", documentId).eq("obra_id", obraId).single();
+  if (dErr) throw new Error(`documents.select failed: ${dErr.message}`);
+  const [receipts, nfs, contracts] = await Promise.all([
+    db.from("payments").select("id", { count: "exact", head: true }).eq("receipt_document_id", documentId),
+    db.from("payments").select("id", { count: "exact", head: true }).eq("nf_document_id", documentId),
+    db.from("contracts").select("id", { count: "exact", head: true }).eq("document_id", documentId),
+  ]);
+  if ((receipts.count ?? 0) + (nfs.count ?? 0) > 0) throw new Error("Este arquivo é comprovante ou nota de um pagamento e não pode ser excluído.");
+  if ((contracts.count ?? 0) > 0) throw new Error("Este arquivo é o contrato de um fornecedor e não pode ser excluído.");
+
+  const { error: iErr } = await db.from("inbox_items").delete().eq("document_id", documentId);
+  if (iErr) throw new Error(`inbox_items.delete failed: ${iErr.message}`);
+  const { error: sErr } = await db.storage.from(DOCUMENTS_BUCKET).remove([doc.storage_path]);
+  if (sErr) throw new Error(`storage remove failed: ${sErr.message}`);
+  const { error } = await db.from("documents").delete().eq("id", documentId).eq("obra_id", obraId);
+  if (error) throw new Error(`documents.delete failed: ${error.message}`);
+  await logEvent(db, {
+    obra_id: obraId,
+    actor_id: userId,
+    type: "document.deleted",
+    payload: { document_id: documentId, original_name: doc.original_name, kind: doc.kind, size_bytes: doc.size_bytes },
+  });
 }

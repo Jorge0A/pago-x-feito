@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import {
   commitSpreadsheetImport,
   createInboxItem,
+  deleteDocument,
   discardInboxItem,
   downloadDocument,
   getInboxItem,
@@ -200,4 +201,18 @@ export async function confirmImportAction(obraId: string, itemId: string, _prev:
     redirect(`/app/${obraId}/orcamento?importado=1`);
   }
   return result;
+}
+
+/** Deletes the uploaded file (and this inbox item with it). */
+export async function deleteFileAction(obraId: string, itemId: string): Promise<void> {
+  const { supabase, user } = await userAndDb();
+  const item = await getInboxItem(supabase, itemId);
+  if (!item) redirect(`/app/${obraId}/entrada`);
+  if (item.document_id) {
+    await deleteDocument(supabase, obraId, item.document_id, user.id);
+  } else {
+    await discardInboxItem(supabase, obraId, itemId, user.id);
+  }
+  revalidatePath(`/app/${obraId}`, "layout");
+  redirect(`/app/${obraId}/entrada`);
 }
