@@ -173,6 +173,27 @@ export async function setBudgetLineStatus(
   }
 }
 
+/**
+ * Deletes a budget line. Refused when payments are linked to it (reject it instead, so the money
+ * trail stays consistent). The full row goes into the event payload, so the history keeps it.
+ */
+export async function deleteBudgetLine(db: DbClient, obraId: string, lineId: string, userId: string): Promise<void> {
+  const { count, error: cErr } = await db.from("payments").select("id", { count: "exact", head: true }).eq("budget_line_id", lineId);
+  if (cErr) throw new Error(cErr.message);
+  if ((count ?? 0) > 0) throw new Error("Esta linha tem pagamentos vinculados. Recuse a linha em vez de excluir.");
+  const { data: line, error: lErr } = await db.from("budget_lines").select("*").eq("id", lineId).eq("obra_id", obraId).single();
+  if (lErr) throw new Error(`budget_lines.select failed: ${lErr.message}`);
+  const { error } = await db.from("budget_lines").delete().eq("id", lineId).eq("obra_id", obraId);
+  if (error) throw new Error(`budget_lines.delete failed: ${error.message}`);
+  await logEvent(db, {
+    obra_id: obraId,
+    actor_id: userId,
+    type: "budget_line.deleted",
+    payload: { budget_line_id: lineId, line },
+    source_document_id: line.source_document_id,
+  });
+}
+
 export interface ObraDashboard {
   summary: ObraSummary;
   bySupplier: SupplierSummary[];

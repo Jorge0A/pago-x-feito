@@ -7,7 +7,10 @@ import { FormSheet } from "@/components/app/form-sheet";
 import { Field, SelectField } from "@/components/app/field";
 import { MoneyInput } from "@/components/app/money-input";
 import { Label } from "@/components/ui/label";
-import { createBudgetLineAction, updateBudgetLineAction } from "./actions";
+import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { createBudgetLineAction, deleteLineAction, updateBudgetLineAction } from "./actions";
 
 export function BudgetLineSheet({
   obraId,
@@ -75,6 +78,21 @@ export function BudgetLineSheet({
         <Label htmlFor="contracted">Valor contratado (se já fechado)</Label>
         <MoneyInput id="contracted" name="contracted_centavos" defaultCentavos={line?.contracted_centavos ?? null} />
       </div>
+      {line && (
+        <Button
+          type="button"
+          variant="ghost"
+          className="w-full text-destructive"
+          onClick={async () => {
+            if (!window.confirm(`Excluir "${line.description}"? Isso não desfaz.`)) return;
+            const r = await deleteLineAction(obraId, line.id);
+            if (r.ok) toast.success(r.message ?? "Linha excluída");
+            else toast.error(r.error);
+          }}
+        >
+          <Trash2 className="size-4" /> Excluir linha
+        </Button>
+      )}
     </FormSheet>
   );
 }

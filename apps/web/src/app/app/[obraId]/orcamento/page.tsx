@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils";
 import { BudgetLineSheet } from "./budget-line-form";
 import { LineStatusActions, type AlternativeLine } from "./line-status";
 import { BulkBar, BULK_FORM_ID } from "./bulk-bar";
+import { SwipeRow } from "@/components/app/swipe-row";
+import { deleteLineAction } from "./actions";
 
 export const metadata: Metadata = { title: "Orçamento" };
 
@@ -73,6 +75,7 @@ export default async function OrcamentoPage({
         {importado === "1" && (
           <p className="rounded-xl border border-[#0f5132]/30 bg-[#0f5132]/5 px-4 py-3 text-sm">
             Planilha importada. As linhas entram <strong>em cotação</strong>: aprove as que valem e recuse as outras. Só o aprovado conta no orçado.
+            Para excluir uma linha de vez, deslize-a para a direita.
           </p>
         )}
 
@@ -142,7 +145,9 @@ export default async function OrcamentoPage({
                       return { id: o.line.id, description: o.line.description, supplierName: of.supplier?.name ?? null, total: o.line.contracted_centavos ?? o.line.budgeted_centavos };
                     });
                   return (
-                    <li key={l.id} className={cn("space-y-2 px-3 py-3", status === "rejected" && "opacity-70")}>
+                    <li key={l.id} className={cn(status === "rejected" && "opacity-70")}>
+                      <SwipeRow onDelete={deleteLineAction.bind(null, obraId, l.id)} className="space-y-2">
+                      <div className="space-y-2 px-3 py-3">
                       <div className="flex items-start gap-2">
                         {filter.key === "cotacao" && status === "quoted" && (
                           <input
@@ -187,6 +192,8 @@ export default async function OrcamentoPage({
                         />
                       </div>
                       <LineStatusActions obraId={obraId} lineId={l.id} status={status} description={l.description} alternatives={alternatives} />
+                      </div>
+                      </SwipeRow>
                     </li>
                   );
                 })}

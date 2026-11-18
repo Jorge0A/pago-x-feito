@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { budgetLineSchema, createBudgetLine, setBudgetLineStatus, updateBudgetLine, type BudgetLineStatus } from "@pxf/core";
+import { budgetLineSchema, createBudgetLine, deleteBudgetLine, setBudgetLineStatus, updateBudgetLine, type BudgetLineStatus } from "@pxf/core";
 import { createClient } from "@/lib/supabase/server";
 import { int, num, runAction, str, type ActionResult } from "@/lib/action-result";
 
@@ -90,5 +90,16 @@ export async function bulkStatusAction(obraId: string, _prev: ActionResult | nul
     for (const id of ids) await setBudgetLineStatus(supabase, obraId, id, data.user.id, status);
     revalidatePath(`/app/${obraId}`, "layout");
     return { ok: true, message: `${ids.length} ${ids.length === 1 ? "linha" : "linhas"} ${status === "approved" ? "aprovada" : "recusada"}${ids.length === 1 ? "" : "s"}` };
+  });
+}
+
+export async function deleteLineAction(obraId: string, lineId: string): Promise<ActionResult> {
+  return runAction(async () => {
+    const supabase = await createClient();
+    const { data } = await supabase.auth.getUser();
+    if (!data.user) return { ok: false, error: "Sessão expirada." };
+    await deleteBudgetLine(supabase, obraId, lineId, data.user.id);
+    revalidatePath(`/app/${obraId}`, "layout");
+    return { ok: true, message: "Linha excluída" };
   });
 }
