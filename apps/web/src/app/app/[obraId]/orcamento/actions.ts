@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { budgetLineSchema, createBudgetLine, updateBudgetLine } from "@pxf/core";
+import { budgetLineSchema, createBudgetLine, setBudgetLineStatus, updateBudgetLine, type BudgetLineStatus } from "@pxf/core";
 import { createClient } from "@/lib/supabase/server";
 import { int, num, runAction, str, type ActionResult } from "@/lib/action-result";
 
@@ -45,6 +45,25 @@ export async function updateBudgetLineAction(
     const { data } = await supabase.auth.getUser();
     if (!data.user) return { ok: false, error: "Sessão expirada." };
     await updateBudgetLine(supabase, obraId, lineId, data.user.id, parse(fd));
+    revalidatePath(`/app/${obraId}`, "layout");
+    return { ok: true };
+  });
+}
+
+export async function setLineStatusAction(
+  obraId: string,
+  lineId: string,
+  status: BudgetLineStatus,
+  _prev: ActionResult | null,
+  fd?: FormData,
+): Promise<ActionResult> {
+  return runAction(async () => {
+    const supabase = await createClient();
+    const { data } = await supabase.auth.getUser();
+    if (!data.user) return { ok: false, error: "Sessão expirada." };
+    const alsoReject = fd ? fd.getAll("also_reject").map(String) : [];
+    const reason = fd ? (str(fd, "reason")?.trim() || null) : null;
+    await setBudgetLineStatus(supabase, obraId, lineId, data.user.id, status, { alsoReject, reason });
     revalidatePath(`/app/${obraId}`, "layout");
     return { ok: true };
   });

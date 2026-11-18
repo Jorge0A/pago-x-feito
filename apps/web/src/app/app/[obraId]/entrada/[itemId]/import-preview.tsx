@@ -173,7 +173,7 @@ export function ImportPreview({
         <div className="space-y-3 rounded-xl border px-4 py-3">
           <label className="flex items-center gap-3 text-sm">
             <input type="checkbox" name="contracted" className="size-5 accent-[#0f5132]" />
-            Estes valores já estão contratados (fechados com o fornecedor)
+            Estes valores já estão contratados (fechados com o fornecedor). Se não, entram em cotação para você aprovar ou recusar.
           </label>
           <div className="space-y-1.5">
             <Label htmlFor="default_category">Categoria para linhas sem categoria</Label>

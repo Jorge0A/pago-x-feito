@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { summarizeBySupplier, summarizeObra } from "./summary";
+import { summarizeBySupplier, summarizeObra, type BudgetLineRow } from "./summary";
 
-const lines = [
-  { id: "l1", supplier_id: "s1", category: "Projeto", description: "Planilha", budgeted_centavos: 450000, contracted_centavos: 450000 },
-  { id: "l2", supplier_id: "s2", category: "Pintura", description: "Paredes", budgeted_centavos: 800000, contracted_centavos: null },
-  { id: "l3", supplier_id: "s2", category: "Pintura", description: "Teto", budgeted_centavos: 200000, contracted_centavos: 250000 },
+const lines: BudgetLineRow[] = [
+  { id: "l1", supplier_id: "s1", category: "Projeto", description: "Planilha", budgeted_centavos: 450000, contracted_centavos: 450000, status: "contracted" },
+  { id: "l2", supplier_id: "s2", category: "Pintura", description: "Paredes", budgeted_centavos: 800000, contracted_centavos: null, status: "approved" },
+  { id: "l3", supplier_id: "s2", category: "Pintura", description: "Teto", budgeted_centavos: 200000, contracted_centavos: 250000, status: "approved" },
 ];
 
 describe("summarizeObra", () => {
@@ -25,13 +25,34 @@ describe("summarizeObra", () => {
     expect(pintura.committed).toBe(1050000);
     expect(pintura.paid).toBe(0);
   });
+
+  it("counts only approved and contracted lines; quoted and rejected stay out of totals", () => {
+    const withQuotes: BudgetLineRow[] = [
+      ...lines,
+      { id: "q1", supplier_id: "s3", category: "Pintura", description: "Paredes (outro pintor)", budgeted_centavos: 700000, contracted_centavos: null, status: "quoted" },
+      { id: "r1", supplier_id: "s4", category: "Gesso", description: "Forro", budgeted_centavos: 300000, contracted_centavos: null, status: "rejected" },
+    ];
+    const s = summarizeObra(withQuotes, []);
+    expect(s.budgeted).toBe(1450000);
+    expect(s.committed).toBe(1500000);
+    expect(s.quoted).toBe(700000);
+    expect(s.quotedCount).toBe(1);
+    expect(s.rejectedCount).toBe(1);
+    expect(s.owed).toBe(1500000);
+    const pintura = s.categories.find((c) => c.category === "Pintura")!;
+    expect(pintura.quoted).toBe(700000);
+    expect(pintura.committed).toBe(1050000);
+    const gesso = s.categories.find((c) => c.category === "Gesso")!;
+    expect(gesso.committed).toBe(0);
+    expect(gesso.lines[0]!.counted).toBe(false);
+  });
+
   it("never reports negative owed", () => {
-    const s = summarizeObra([lines[0]!], [
-      { id: "p1", supplier_id: "s1", budget_line_id: "l1", amount_centavos: 500000 },
-    ]);
+    const s = summarizeObra([lines[0]!], [{ id: "p1", supplier_id: "s1", budget_line_id: "l1", amount_centavos: 500000 }]);
     expect(s.lines[0]!.owed).toBe(0);
     expect(s.owed).toBe(0);
   });
+
   it("handles an empty obra", () => {
     const s = summarizeObra([], []);
     expect(s.paidTotal).toBe(0);
@@ -40,17 +61,33 @@ describe("summarizeObra", () => {
 });
 
 describe("summarizeBySupplier", () => {
-  it("groups committed and paid per supplier, payments regardless of line", () => {
-    const names = new Map([["s1", "BALT"], ["s2", "Pintor"]]);
-    const out = summarizeBySupplier(lines, [
-      { id: "p1", supplier_id: "s1", budget_line_id: "l1", amount_centavos: 225000 },
-      { id: "p2", supplier_id: "s2", budget_line_id: null, amount_centavos: 150000 },
-    ], names);
-    expect(out.map((s) => s.name)).toEqual(["Pintor", "BALT"]);
+  it("groups committed, quoted and paid per supplier; rejected lines are ignored", () => {
+    const names = new Map([
+      ["s1", "BALT"],
+      ["s2", "Pintor"],
+      ["s3", "Outro pintor"],
+      ["s4", "Gesseiro"],
+    ]);
+    const all: BudgetLineRow[] = [
+      ...lines,
+      { id: "q1", supplier_id: "s3", category: "Pintura", description: "Paredes", budgeted_centavos: 700000, contracted_centavos: null, status: "quoted" },
+      { id: "r1", supplier_id: "s4", category: "Gesso", description: "Forro", budgeted_centavos: 300000, contracted_centavos: null, status: "rejected" },
+    ];
+    const out = summarizeBySupplier(
+      all,
+      [
+        { id: "p1", supplier_id: "s1", budget_line_id: "l1", amount_centavos: 225000 },
+        { id: "p2", supplier_id: "s2", budget_line_id: null, amount_centavos: 150000 },
+      ],
+      names,
+    );
+    expect(out.map((s) => s.name)).toEqual(["Pintor", "BALT", "Outro pintor"]);
     const pintor = out[0]!;
     expect(pintor.committed).toBe(1050000);
     expect(pintor.paid).toBe(150000);
     expect(pintor.owed).toBe(900000);
     expect(out[1]!.owed).toBe(225000);
+    expect(out[2]!.quoted).toBe(700000);
+    expect(out[2]!.committed).toBe(0);
   });
 });

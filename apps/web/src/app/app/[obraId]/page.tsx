@@ -51,6 +51,20 @@ export default async function ResumoPage({ params }: { params: Promise<{ obraId:
           <div className="h-2 overflow-hidden rounded-full bg-muted">
             <div className="h-full rounded-full bg-[#0f5132]" style={{ width: `${Math.min(paidPct, 100)}%` }} />
           </div>
+          {(summary.quotedCount > 0 || summary.rejectedCount > 0) && (
+            <p className="text-xs text-muted-foreground">
+              {summary.quotedCount > 0 && (
+                <>
+                  <Money value={summary.quoted} className="text-foreground" /> em {summary.quotedCount}{" "}
+                  {summary.quotedCount === 1 ? "cotação" : "cotações"} fora do orçado.{" "}
+                </>
+              )}
+              {summary.rejectedCount > 0 && <>{summary.rejectedCount} recusada{summary.rejectedCount === 1 ? "" : "s"}.</>}{" "}
+              <Link href={`/app/${obraId}/orcamento?filtro=cotacao`} className="underline">
+                Decidir
+              </Link>
+            </p>
+          )}
           {summary.paidUnallocated > 0 && (
             <p className="text-xs text-muted-foreground">
               <Money value={summary.paidUnallocated} /> pagos sem linha do orçamento.

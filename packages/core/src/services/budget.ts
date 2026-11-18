@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { DbClient, Tables } from "@pxf/db";
-import { summarizeBySupplier, summarizeObra, type ObraSummary, type SupplierSummary } from "../summary";
+import { summarizeBySupplier, summarizeObra, type BudgetLineStatus, type ObraSummary, type SupplierSummary } from "../summary";
 import { logEvent } from "./events";
 
 const centavos = z.number().int().min(0);
@@ -64,7 +64,7 @@ export async function listBudgetLines(db: DbClient, obraId: string): Promise<Bud
 export async function createBudgetLine(db: DbClient, obraId: string, userId: string, input: BudgetLineInput) {
   const { data, error } = await db
     .from("budget_lines")
-    .insert({ obra_id: obraId, ...input })
+    .insert({ obra_id: obraId, ...input, status: input.contracted_centavos !== null ? "contracted" : "approved" })
     .select("id")
     .single();
   if (error) throw new Error(`budget_lines.insert failed: ${error.message}`);
@@ -92,6 +92,65 @@ export async function updateBudgetLine(
     type: "budget_line.updated",
     payload: { budget_line_id: lineId, ...input },
   });
+}
+
+export const BUDGET_LINE_TRANSITIONS: Record<BudgetLineStatus, BudgetLineStatus[]> = {
+  quoted: ["approved", "rejected"],
+  approved: ["contracted", "quoted", "rejected"],
+  rejected: ["quoted"],
+  contracted: ["approved"],
+};
+
+/**
+ * Changes a line's status. Approving can also reject other quoted lines (alternatives for the same
+ * item) in one go. Every change is logged with the previous status.
+ */
+export async function setBudgetLineStatus(
+  db: DbClient,
+  obraId: string,
+  lineId: string,
+  userId: string,
+  status: BudgetLineStatus,
+  opts: { alsoReject?: string[]; reason?: string | null } = {},
+): Promise<void> {
+  const { data: line, error: lErr } = await db.from("budget_lines").select("id, status, description").eq("id", lineId).eq("obra_id", obraId).single();
+  if (lErr) throw new Error(`budget_lines.select failed: ${lErr.message}`);
+  if (line.status !== status && !BUDGET_LINE_TRANSITIONS[line.status as BudgetLineStatus].includes(status)) {
+    throw new Error(`Não dá para mudar de ${line.status} para ${status}`);
+  }
+  const now = new Date().toISOString();
+  const { error } = await db
+    .from("budget_lines")
+    .update({ status, status_changed_at: now, rejection_reason: status === "rejected" ? (opts.reason ?? null) : null })
+    .eq("id", lineId)
+    .eq("obra_id", obraId);
+  if (error) throw new Error(`budget_lines.update failed: ${error.message}`);
+  await logEvent(db, {
+    obra_id: obraId,
+    actor_id: userId,
+    type: "budget_line.status_changed",
+    payload: { budget_line_id: lineId, from: line.status, to: status, reason: opts.reason ?? null, description: line.description },
+  });
+
+  const others = (opts.alsoReject ?? []).filter((id) => id !== lineId);
+  if (status === "approved" && others.length > 0) {
+    const { data: rejected, error: rErr } = await db
+      .from("budget_lines")
+      .update({ status: "rejected", status_changed_at: now, rejection_reason: "Outra cotação aprovada" })
+      .in("id", others)
+      .eq("obra_id", obraId)
+      .eq("status", "quoted")
+      .select("id, description");
+    if (rErr) throw new Error(`budget_lines.update failed: ${rErr.message}`);
+    for (const r of rejected ?? []) {
+      await logEvent(db, {
+        obra_id: obraId,
+        actor_id: userId,
+        type: "budget_line.status_changed",
+        payload: { budget_line_id: r.id, from: "quoted", to: "rejected", reason: "Outra cotação aprovada", approved_line_id: lineId, description: r.description },
+      });
+    }
+  }
 }
 
 export interface ObraDashboard {

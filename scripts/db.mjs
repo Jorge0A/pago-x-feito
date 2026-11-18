@@ -70,7 +70,7 @@ switch (cmd) {
     runWithFallback((u) => ["db", "push", "--remote", u, "--yes"]);
     break;
   case "types": {
-    const out = run(["gen", "types", "typescript", "--remote", dbUrl, "--schema", "public"], { capture: true });
+    const out = runWithFallback((u) => ["gen", "types", "typescript", "--db-url", u, "--schema", "public"], { capture: true });
     const { writeFileSync } = await import("node:fs");
     const file = resolve(dbDir, "src", "database.types.ts");
     writeFileSync(file, out);

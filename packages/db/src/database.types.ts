@@ -33,14 +33,14 @@ isOneToOne: false
                   ]
                 },"budget_lines": {
                   Row: {
-                    "budgeted_centavos": number,"category": string,"contract_id": string | null,"contracted_centavos": number | null,"created_at": string,"description": string,"id": string,"obra_id": string,"qty": number | null,"sort_order": number,"source_document_id": string | null,"supplier_id": string | null,"unit": string | null,"updated_at": string
+                    "budgeted_centavos": number,"category": string,"contract_id": string | null,"contracted_centavos": number | null,"created_at": string,"description": string,"id": string,"obra_id": string,"qty": number | null,"rejection_reason": string | null,"sort_order": number,"source_document_id": string | null,"status": Database["public"]['Enums']["budget_line_status"],"status_changed_at": string | null,"supplier_id": string | null,"unit": string | null,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "budgeted_centavos"?: number,"category": string,"contract_id"?: string | null,"contracted_centavos"?: number | null,"created_at"?: string,"description": string,"id"?: string,"obra_id": string,"qty"?: number | null,"sort_order"?: number,"source_document_id"?: string | null,"supplier_id"?: string | null,"unit"?: string | null,"updated_at"?: string
+                    "budgeted_centavos"?: number,"category": string,"contract_id"?: string | null,"contracted_centavos"?: number | null,"created_at"?: string,"description": string,"id"?: string,"obra_id": string,"qty"?: number | null,"rejection_reason"?: string | null,"sort_order"?: number,"source_document_id"?: string | null,"status"?: Database["public"]['Enums']["budget_line_status"],"status_changed_at"?: string | null,"supplier_id"?: string | null,"unit"?: string | null,"updated_at"?: string
                   }
                   Update: {
-                    "budgeted_centavos"?: number,"category"?: string,"contract_id"?: string | null,"contracted_centavos"?: number | null,"created_at"?: string,"description"?: string,"id"?: string,"obra_id"?: string,"qty"?: number | null,"sort_order"?: number,"source_document_id"?: string | null,"supplier_id"?: string | null,"unit"?: string | null,"updated_at"?: string
+                    "budgeted_centavos"?: number,"category"?: string,"contract_id"?: string | null,"contracted_centavos"?: number | null,"created_at"?: string,"description"?: string,"id"?: string,"obra_id"?: string,"qty"?: number | null,"rejection_reason"?: string | null,"sort_order"?: number,"source_document_id"?: string | null,"status"?: Database["public"]['Enums']["budget_line_status"],"status_changed_at"?: string | null,"supplier_id"?: string | null,"unit"?: string | null,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -432,7 +432,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "document_kind": "receipt"|"nf"|"contract"|"budget"|"photo"|"quote"|"building_manual"|"building_procedures"|"assembly_minutes"|"other","inbox_channel": "upload"|"whatsapp"|"chat_export"|"email","inbox_status": "received"|"extracting"|"proposed"|"confirmed"|"discarded"|"failed","installment_status": "pending"|"paid"|"cancelled","installment_trigger": "date"|"delivery"|"milestone","member_role": "owner"|"partner"|"engineer"|"viewer","nf_status": "pending"|"received"|"not_applicable","obra_status": "planning"|"in_progress"|"finished","payment_method": "pix"|"transfer"|"boleto"|"card"|"cash"|"other","task_status": "planned"|"in_progress"|"done"|"cancelled","task_type": "delivery"|"measurement"|"installation"|"payment"|"paperwork"|"access"|"other"
+            "budget_line_status": "quoted"|"approved"|"rejected"|"contracted","document_kind": "receipt"|"nf"|"contract"|"budget"|"photo"|"quote"|"building_manual"|"building_procedures"|"assembly_minutes"|"other","inbox_channel": "upload"|"whatsapp"|"chat_export"|"email","inbox_status": "received"|"extracting"|"proposed"|"confirmed"|"discarded"|"failed","installment_status": "pending"|"paid"|"cancelled","installment_trigger": "date"|"delivery"|"milestone","member_role": "owner"|"partner"|"engineer"|"viewer","nf_status": "pending"|"received"|"not_applicable","obra_status": "planning"|"in_progress"|"finished","payment_method": "pix"|"transfer"|"boleto"|"card"|"cash"|"other","task_status": "planned"|"in_progress"|"done"|"cancelled","task_type": "delivery"|"measurement"|"installation"|"payment"|"paperwork"|"access"|"other"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -548,7 +548,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "document_kind": ["receipt", "nf", "contract", "budget", "photo", "quote", "building_manual", "building_procedures", "assembly_minutes", "other"],"inbox_channel": ["upload", "whatsapp", "chat_export", "email"],"inbox_status": ["received", "extracting", "proposed", "confirmed", "discarded", "failed"],"installment_status": ["pending", "paid", "cancelled"],"installment_trigger": ["date", "delivery", "milestone"],"member_role": ["owner", "partner", "engineer", "viewer"],"nf_status": ["pending", "received", "not_applicable"],"obra_status": ["planning", "in_progress", "finished"],"payment_method": ["pix", "transfer", "boleto", "card", "cash", "other"],"task_status": ["planned", "in_progress", "done", "cancelled"],"task_type": ["delivery", "measurement", "installation", "payment", "paperwork", "access", "other"]
+            "budget_line_status": ["quoted", "approved", "rejected", "contracted"],"document_kind": ["receipt", "nf", "contract", "budget", "photo", "quote", "building_manual", "building_procedures", "assembly_minutes", "other"],"inbox_channel": ["upload", "whatsapp", "chat_export", "email"],"inbox_status": ["received", "extracting", "proposed", "confirmed", "discarded", "failed"],"installment_status": ["pending", "paid", "cancelled"],"installment_trigger": ["date", "delivery", "milestone"],"member_role": ["owner", "partner", "engineer", "viewer"],"nf_status": ["pending", "received", "not_applicable"],"obra_status": ["planning", "in_progress", "finished"],"payment_method": ["pix", "transfer", "boleto", "card", "cash", "other"],"task_status": ["planned", "in_progress", "done", "cancelled"],"task_type": ["delivery", "measurement", "installation", "payment", "paperwork", "access", "other"]
           }
         }
 } as const

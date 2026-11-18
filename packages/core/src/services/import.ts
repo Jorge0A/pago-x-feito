@@ -94,6 +94,7 @@ export async function commitSpreadsheetImport(
     unit: r.unit,
     budgeted_centavos: r.total_centavos ?? 0,
     contracted_centavos: r.contracted ? (r.total_centavos ?? 0) : null,
+    status: (r.contracted ? "contracted" : "quoted") as "contracted" | "quoted",
     source_document_id: documentId,
     sort_order: i + 1,
   }));
